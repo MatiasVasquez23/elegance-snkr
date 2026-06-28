@@ -1003,7 +1003,7 @@ function saveCart(){localStorage.setItem('es-cart',JSON.stringify(cart))}
 async function dbLoadProducts(){
   if(sb){
     const {data,error}=await sb.from('products').select('*').eq('active',true).order('id');
-    if(!error&&data){
+    if(!error&&data&&data.length>0){
       return data.map(p=>({
         id:p.id, name:p.name, brand:p.brand, colorway:p.colorway||'',
         price:p.price, original:p.original_price||0, stock:p.stock||0,
