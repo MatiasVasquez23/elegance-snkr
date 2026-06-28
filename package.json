@@ -1,0 +1,14 @@
+{
+  "name": "elegance-snkr",
+  "version": "1.0.0",
+  "description": "Elegance Snkr — Tienda de sneakers originales",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js && python3 -m http.server 8765 --directory public",
+    "deploy": "node build.js && node_modules/.bin/vercel --prod"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "vercel": "^54.18.1"
+  }
+}
