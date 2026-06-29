@@ -971,7 +971,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:60px 24p
     </nav>
     <div class="admin-sidebar-bottom">
       <button class="btn-view-store" onclick="closeAdmin()">🏪 Ver Tienda</button>
-      <button class="btn-logout" onclick="closeAdmin()">✕ Cerrar sesión</button>
+      <button class="btn-logout" onclick="adminLogout()">✕ Cerrar sesión</button>
     </div>
   </aside>
 
@@ -1050,8 +1050,14 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:60px 24p
               <input class="admin-input" id="a-stock" type="number" placeholder="3">
             </div>
             <div>
-              <label class="admin-form-label">Emoji / Icono</label>
+              <label class="admin-form-label">Emoji / Icono (fallback)</label>
               <input class="admin-input" id="a-emoji" placeholder="👟">
+            </div>
+            <div class="full">
+              <label class="admin-form-label">Imagen del producto</label>
+              <div id="adm-img-preview" onclick="document.getElementById('a-img-file').click()" style="cursor:pointer;border:2px dashed #d1d5db;border-radius:8px;height:110px;display:flex;align-items:center;justify-content:center;color:#8b90a0;font-size:13px;margin-bottom:8px;background:#f9fafb;transition:border-color .2s;overflow:hidden" onmouseenter="this.style.borderColor='#b8963e'" onmouseleave="this.style.borderColor='#d1d5db'">📷 Clic para subir foto</div>
+              <input type="file" id="a-img-file" accept="image/*" style="display:none" onchange="previewProductImage(this)">
+              <input class="admin-input" id="a-img-url" placeholder="O pegá una URL de imagen (https://...)" oninput="syncImgUrlPreview(this.value)">
             </div>
             <div>
               <label class="admin-form-label">Badge</label>
@@ -1247,6 +1253,7 @@ let cart = JSON.parse(localStorage.getItem('es-cart') || '[]');
 let currentQVProduct = null;
 let selectedQVSize = null;
 let currentUser = null;
+let pendingAdminOpen = false;
 
 function saveCart(){localStorage.setItem('es-cart',JSON.stringify(cart))}
 
@@ -1271,7 +1278,8 @@ async function dbSaveProduct(p, id){
   const row={
     name:p.name, brand:p.brand, colorway:p.colorway, price:p.price,
     original_price:p.original||0, stock:p.stock, emoji:p.emoji,
-    badge:p.badge, sizes:p.sizes, description:p.desc, active:true
+    badge:p.badge, sizes:p.sizes, description:p.desc, active:true,
+    image_url: p.image_url||''
   };
   if(sb){
     if(id){const r=await sb.from('products').update(row).eq('id',id);return r;}
@@ -1352,7 +1360,7 @@ function renderProducts(list){
     </div>
     <button class="product-wishlist" onclick="event.stopPropagation();toggleWishlist(${p.id})" title="Guardar">♡</button>
     <div class="product-img">
-      <span style="font-size:72px">${p.emoji||'👟'}</span>
+      ${p.image_url?`<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;padding:12px">`:`<span style="font-size:72px">${p.emoji||'👟'}</span>`}
       <div class="product-quick-view">Vista rápida</div>
     </div>
     <div class="product-info">
@@ -1597,7 +1605,7 @@ function openQuickView(id){
   document.getElementById('qv-price').textContent=formatPrice(p.price);
   document.getElementById('qv-stock').textContent=p.stock<=3?`⚠ Solo quedan ${p.stock} pares disponibles`:`✓ ${p.stock} pares en stock`;
   document.getElementById('qv-desc').textContent=p.desc||'';
-  document.getElementById('qv-img').innerHTML=`<span style="font-size:100px">${p.emoji||'👟'}</span>`;
+  document.getElementById('qv-img').innerHTML=p.image_url?`<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;padding:16px">`:`<span style="font-size:100px">${p.emoji||'👟'}</span>`;
   const sizesEl = document.getElementById('qv-sizes');
   sizesEl.innerHTML=(p.sizes||[]).map(s=>`<button class="size-btn" onclick="selectQVSize('${s}',this)">${s}</button>`).join('');
   document.getElementById('quickview-overlay').classList.add('open');
@@ -1668,6 +1676,7 @@ async function doLogin(){
   }
   closeAuth();
   updateUserUI();
+  if(pendingAdminOpen){pendingAdminOpen=false;openAdmin();}
 }
 
 async function doRegister(){
@@ -1695,7 +1704,50 @@ function closeSizeGuide(){document.getElementById('sizeguide-overlay').classList
 function closeSgIfBg(e){if(e.target.id==='sizeguide-overlay')closeSizeGuide();}
 
 // ===== ADMIN =====
+async function adminLogout(){
+  if(sb)await sb.auth.signOut();
+  currentUser=null;
+  closeAdmin();
+  updateUserUI();
+  showToast('Sesión cerrada','success');
+}
+
+async function uploadProductImage(file){
+  if(!sb||!file)return null;
+  const ext=file.name.split('.').pop().toLowerCase();
+  const fname=`${Date.now()}-${Math.random().toString(36).substr(2,6)}.${ext}`;
+  try{await sb.storage.createBucket('product-images',{public:true});}catch(e){}
+  const {error}=await sb.storage.from('product-images').upload(fname,file,{cacheControl:'3600',upsert:false});
+  if(error){showToast('Error al subir imagen: '+error.message,'error');return null;}
+  return sb.storage.from('product-images').getPublicUrl(fname).data?.publicUrl||null;
+}
+
+function previewProductImage(input){
+  const file=input.files[0];
+  if(!file)return;
+  document.getElementById('a-img-url').value='';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('adm-img-preview').innerHTML=`<img src="${e.target.result}" style="width:100%;height:100%;object-fit:contain;padding:8px">`;
+    document.getElementById('adm-img-preview').dataset.localFile='1';
+  };
+  reader.readAsDataURL(file);
+}
+
+function syncImgUrlPreview(url){
+  const el=document.getElementById('adm-img-preview');
+  document.getElementById('a-img-file').value='';
+  el.dataset.localFile='';
+  el.innerHTML=url?`<img src="${url}" style="width:100%;height:100%;object-fit:contain;padding:8px">`:'📷 Clic para subir foto';
+}
+
 async function openAdmin(){
+  if(!currentUser){
+    pendingAdminOpen=true;
+    showToast('Iniciá sesión para acceder al panel admin','error');
+    openAuth('login');
+    return;
+  }
   document.getElementById('admin-overlay').classList.add('open');
   document.body.style.overflow='hidden';
   products=await dbLoadProducts();
@@ -1783,7 +1835,7 @@ function renderAdminProducts(filter){
   if(!list.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:#8b90a0;padding:32px;font-size:13px">No se encontraron productos</td></tr>`;return;}
   tbody.innerHTML=list.map(p=>`
   <tr>
-    <td><div class="ptable-emoji">${p.emoji||'👟'}</div></td>
+    <td><div class="ptable-emoji">${p.image_url?`<img src="${p.image_url}" style="width:42px;height:42px;object-fit:contain;border-radius:6px;display:block">`:(p.emoji||'👟')}</div></td>
     <td><div class="ptable-name">${p.name}</div><div class="ptable-brand">${p.brand}</div></td>
     <td style="font-weight:700;color:#1a1f2e">${formatPrice(p.price)}</td>
     <td><span style="font-weight:600;color:${p.stock<=3?'#92400e':'#374151'}">${p.stock}</span></td>
@@ -1886,6 +1938,11 @@ function editProduct(id){
   document.getElementById('a-badge').value=p.badge||'';
   document.getElementById('a-sizes').value=(p.sizes||[]).join(',');
   document.getElementById('a-desc').value=p.desc||'';
+  const imgUrl=p.image_url||'';
+  document.getElementById('a-img-url').value=imgUrl;
+  const prev=document.getElementById('adm-img-preview');
+  prev.dataset.localFile='';
+  prev.innerHTML=imgUrl?`<img src="${imgUrl}" style="width:100%;height:100%;object-fit:contain;padding:8px">`:'📷 Clic para subir foto';
   document.getElementById('admin-form-title').textContent='Editar producto';
   toggleAdminForm(true);
 }
@@ -1900,11 +1957,13 @@ async function deleteProduct(id){
 }
 
 function clearAdminForm(){
-  ['a-name','a-colorway','a-price','a-original','a-stock','a-emoji','a-sizes','a-desc'].forEach(fid=>{const el=document.getElementById(fid);if(el)el.value='';});
+  ['a-name','a-colorway','a-price','a-original','a-stock','a-emoji','a-sizes','a-desc','a-img-url'].forEach(fid=>{const el=document.getElementById(fid);if(el)el.value='';});
   const badge=document.getElementById('a-badge');if(badge)badge.value='';
   const brand=document.getElementById('a-brand');if(brand)brand.value='Nike';
   const eid=document.getElementById('edit-id');if(eid)eid.value='';
   const title=document.getElementById('admin-form-title');if(title)title.textContent='Nuevo producto';
+  const file=document.getElementById('a-img-file');if(file)file.value='';
+  const prev=document.getElementById('adm-img-preview');if(prev){prev.innerHTML='📷 Clic para subir foto';prev.dataset.localFile='';}
 }
 
 async function saveProduct(){
@@ -1920,9 +1979,17 @@ async function saveProduct(){
   const sizes=document.getElementById('a-sizes').value.split(',').map(s=>s.trim()).filter(Boolean);
   const desc=document.getElementById('a-desc').value.trim();
   if(!name||!price){showToast('Nombre y precio son obligatorios','error');return;}
-  const p={name,brand,colorway,price,original,stock,emoji,badge,sizes,desc};
+  // Handle image: upload file if one was selected, else use URL input
+  let image_url=document.getElementById('a-img-url').value.trim();
+  const fileInput=document.getElementById('a-img-file');
+  if(fileInput.files[0]&&document.getElementById('adm-img-preview').dataset.localFile==='1'){
+    showToast('Subiendo imagen...','success');
+    const uploaded=await uploadProductImage(fileInput.files[0]);
+    if(uploaded)image_url=uploaded;
+  }
+  const p={name,brand,colorway,price,original,stock,emoji,badge,sizes,desc,image_url};
   const {error}=await dbSaveProduct(p,id||null);
-  if(error){showToast('Error al guardar: '+(error.message||error),'error');return;}
+  if(error){showToast('Error al guardar: '+(error.message||JSON.stringify(error)),'error');return;}
   showToast(id?'✓ Producto actualizado':'✓ Producto agregado','success');
   products=await dbLoadProducts();
   applyFilter();
