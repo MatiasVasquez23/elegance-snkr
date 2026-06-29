@@ -1289,7 +1289,7 @@ async function dbLoadProducts(){
         id:p.id, name:p.name, brand:p.brand, colorway:p.colorway||'',
         price:p.price, original:p.original_price||0, stock:p.stock||0,
         emoji:p.emoji||'👟', badge:p.badge||'', sizes:p.sizes||[],
-        desc:p.description||''
+        desc:p.description||'', image_url:p.image_url||''
       }));
     }
   }
@@ -1301,9 +1301,9 @@ async function dbSaveProduct(p, id){
   const row={
     name:p.name, brand:p.brand, colorway:p.colorway, price:p.price,
     original_price:p.original||0, stock:p.stock, emoji:p.emoji,
-    badge:p.badge, sizes:p.sizes, description:p.desc, active:true,
-    image_url: p.image_url||''
+    badge:p.badge, sizes:p.sizes, description:p.desc, active:true
   };
+  if(p.image_url) row.image_url = p.image_url;
   if(sb){
     if(id){const r=await sb.from('products').update(row).eq('id',id);return r;}
     else{const r=await sb.from('products').insert(row).select().single();return r;}
@@ -1383,7 +1383,9 @@ function renderProducts(list){
     </div>
     <button class="product-wishlist" onclick="event.stopPropagation();toggleWishlist(${p.id})" title="Guardar">♡</button>
     <div class="product-img">
-      ${p.image_url?`<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;padding:12px">`:`<span style="font-size:72px">${p.emoji||'👟'}</span>`}
+      ${p.image_url
+        ? `<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;padding:12px">`
+        : `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;height:100%"><span style="font-size:64px">${p.emoji||'👟'}</span><span style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600">${p.brand||''}</span></div>`}
       <div class="product-quick-view">Vista rápida</div>
     </div>
     <div class="product-info">
@@ -1628,7 +1630,9 @@ function openQuickView(id){
   document.getElementById('qv-price').textContent=formatPrice(p.price);
   document.getElementById('qv-stock').textContent=p.stock<=3?`⚠ Solo quedan ${p.stock} pares disponibles`:`✓ ${p.stock} pares en stock`;
   document.getElementById('qv-desc').textContent=p.desc||'';
-  document.getElementById('qv-img').innerHTML=p.image_url?`<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;padding:16px">`:`<span style="font-size:100px">${p.emoji||'👟'}</span>`;
+  document.getElementById('qv-img').innerHTML=p.image_url
+    ?`<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;padding:16px">`
+    :`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;height:100%"><span style="font-size:90px">${p.emoji||'👟'}</span><span style="font-size:11px;color:var(--text2);font-weight:600;letter-spacing:1px;text-transform:uppercase">${p.brand}</span></div>`;
   const sizesEl = document.getElementById('qv-sizes');
   sizesEl.innerHTML=(p.sizes||[]).map(s=>`<button class="size-btn" onclick="selectQVSize('${s}',this)">${s}</button>`).join('');
   document.getElementById('quickview-overlay').classList.add('open');
@@ -2017,6 +2021,11 @@ function clearAdminForm(){
 }
 
 async function saveProduct(){
+  // Auth guard
+  if(sb && !currentUser){
+    showToast('Sesión expirada. Cerrá y volvé a ingresar.','error');
+    return;
+  }
   const id=document.getElementById('edit-id').value;
   const name=document.getElementById('a-name').value.trim();
   const brand=document.getElementById('a-brand').value;
@@ -2038,8 +2047,12 @@ async function saveProduct(){
     if(uploaded)image_url=uploaded;
   }
   const p={name,brand,colorway,price,original,stock,emoji,badge,sizes,desc,image_url};
-  const {error}=await dbSaveProduct(p,id||null);
-  if(error){showToast('Error al guardar: '+(error.message||JSON.stringify(error)),'error');return;}
+  const {data:savedData, error}=await dbSaveProduct(p,id||null);
+  if(error){
+    console.error('Save error:', error);
+    alert('Error al guardar el producto:\n'+(error.message||JSON.stringify(error))+'\n\nAsegurate de estar logueado en el panel admin.');
+    return;
+  }
   showToast(id?'✓ Producto actualizado':'✓ Producto agregado','success');
   products=await dbLoadProducts();
   applyFilter();
