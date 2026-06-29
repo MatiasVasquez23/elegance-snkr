@@ -824,9 +824,9 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:60px 24p
         <h4>Contacto</h4>
         <ul class="footer-links">
           <li><a href="mailto:elegancesnkr@gmail.com">✉ elegancesnkr@gmail.com</a></li>
-          <li><a href="https://wa.me/549XXXXXXXXX" target="_blank">📱 WhatsApp</a></li>
+          <li><a href="https://wa.me/569XXXXXXXXX" target="_blank">📱 WhatsApp</a></li>
           <li><a href="https://www.instagram.com/elegance.snkr" target="_blank">📸 @elegance.snkr</a></li>
-          <li><a href="#">📍 Argentina</a></li>
+          <li><a href="#">📍 Chile</a></li>
         </ul>
       </div>
     </div>
@@ -1174,7 +1174,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:60px 24p
       </div>
       <div class="co-field">
         <label>Ciudad / Provincia *</label>
-        <input class="co-input" id="co-city" placeholder="Buenos Aires">
+        <input class="co-input" id="co-city" placeholder="Santiago">
       </div>
       <div class="co-field">
         <label>Notas (opcional)</label>
@@ -1212,7 +1212,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:60px 24p
 <div id="toast-container"></div>
 
 <!-- FLOATING BUTTONS -->
-<a id="wa-float" href="https://wa.me/549XXXXXXXXX?text=Hola!%20Vi%20su%20catálogo%20y%20me%20interesa%20saber%20más." target="_blank" title="Consultar por WhatsApp">📱</a>
+<a id="wa-float" href="https://wa.me/569XXXXXXXXX?text=Hola!%20Vi%20su%20catálogo%20y%20me%20interesa%20saber%20más." target="_blank" title="Consultar por WhatsApp">📱</a>
 <button id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Volver arriba">↑</button>
 
 <script>
@@ -1240,11 +1240,11 @@ const DEFAULT_PRODUCTS = [
 ];
 
 const TESTIMONIALS = [
-  {stars:5,text:"Compré los Jordan 1 Chicago y llegaron perfectos con caja original. La autenticidad está garantizada, ya los mandé a verificar y son 100% reales.",name:"Matías G.",meta:"Buenos Aires · Comprador verificado",product:"Air Jordan 1 Chicago",avatar:"🙋‍♂️"},
-  {stars:5,text:"El envío fue rapidísimo, en 2 días ya tenía mis Yeezys en casa. La atención por WhatsApp es increíble, te responden al instante.",name:"Valentina R.",meta:"Córdoba · Comprador verificado",product:"Yeezy Boost 350 V2",avatar:"🙋‍♀️"},
+  {stars:5,text:"Compré los Jordan 1 Chicago y llegaron perfectos con caja original. La autenticidad está garantizada, ya los mandé a verificar y son 100% reales.",name:"Matías G.",meta:"Santiago · Comprador verificado",product:"Air Jordan 1 Chicago",avatar:"🙋‍♂️"},
+  {stars:5,text:"El envío fue rapidísimo, en 2 días ya tenía mis Yeezys en casa. La atención por WhatsApp es increíble, te responden al instante.",name:"Valentina R.",meta:"Valparaíso · Comprador verificado",product:"Yeezy Boost 350 V2",avatar:"🙋‍♀️"},
   {stars:5,text:"Tardé años en conseguir las Dunk Panda a buen precio. Elegance las tenía al mejor valor del mercado y llegaron en perfectas condiciones.",name:"Lucas M.",meta:"Rosario · Comprador verificado",product:"Nike Dunk Low Panda",avatar:"👨"},
-  {stars:5,text:"Me asesoraron en la talla, me explicaron todo el proceso y recibí exactamente lo que esperaba. Recomiendo 100% a cualquiera que busque sneakers originales.",name:"Camila T.",meta:"Mendoza · Comprador verificado",product:"New Balance 550",avatar:"👩"},
-  {stars:5,text:"Ya van 3 pares que compro y siempre perfectos. La guía de tallas es súper útil y los precios son los mejores que encontré en Argentina.",name:"Facundo P.",meta:"La Plata · Comprador verificado",product:"Nike Air Max 1",avatar:"🧑"},
+  {stars:5,text:"Me asesoraron en la talla, me explicaron todo el proceso y recibí exactamente lo que esperaba. Recomiendo 100% a cualquiera que busque sneakers originales.",name:"Camila T.",meta:"Concepción · Comprador verificado",product:"New Balance 550",avatar:"👩"},
+  {stars:5,text:"Ya van 3 pares que compro y siempre perfectos. La guía de tallas es súper útil y los precios son los mejores que encontré en Chile.",name:"Facundo P.",meta:"Viña del Mar · Comprador verificado",product:"Nike Air Max 1",avatar:"🧑"},
   {stars:4,text:"Muy buena experiencia. El proceso de compra es simple, los medios de pago son variados y la calidad del producto es exactamente como se muestra.",name:"Sofía L.",meta:"Tucumán · Comprador verificado",product:"Adidas Ultraboost",avatar:"👱‍♀️"},
 ];
 
@@ -1344,7 +1344,7 @@ async function updateOrderStatus(id,status){
 let allOrders=[];
 
 // ===== RENDER PRODUCTS =====
-function formatPrice(n){return '$'+n.toLocaleString('es-AR')}
+function formatPrice(n){return '$'+n.toLocaleString('es-CL')}
 
 function renderProducts(list){
   const grid = document.getElementById('product-grid');
@@ -1533,7 +1533,7 @@ function checkoutWhatsApp(){
   const lines = cart.map(i=>`- ${i.name} (Talla ${i.size}) x${i.qty} = ${formatPrice(i.price*i.qty)}`).join('%0A');
   const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
   const msg = `Hola! Quiero hacer un pedido:%0A%0A${lines}%0A%0ATotal: ${formatPrice(total)}`;
-  window.open(`https://wa.me/549XXXXXXXXX?text=${msg}`,'_blank');
+  window.open(`https://wa.me/569XXXXXXXXX?text=${msg}`,'_blank');
 }
 
 // ===== CHECKOUT MODAL =====
@@ -1638,7 +1638,7 @@ function consultarWA(){
   if(!currentQVProduct)return;
   const p=currentQVProduct;
   const msg=`Hola! Quiero consultar sobre: ${p.name} (${p.colorway||''})${selectedQVSize?' - Talla: '+selectedQVSize:''} - Precio: ${formatPrice(p.price)}`;
-  window.open(`https://wa.me/549XXXXXXXXX?text=${encodeURIComponent(msg)}`,'_blank');
+  window.open(`https://wa.me/569XXXXXXXXX?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
 // ===== AUTH =====
@@ -1860,7 +1860,7 @@ function renderAdminOrders(filterText){
   if(!tbody)return;
   if(!list.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:#8b90a0;padding:32px;font-size:13px">No hay pedidos</td></tr>`;return;}
   tbody.innerHTML=list.map(o=>{
-    const date=o.created_at?new Date(o.created_at).toLocaleDateString('es-AR'):'—';
+    const date=o.created_at?new Date(o.created_at).toLocaleDateString('es-CL'):'—';
     const itemCount=(o.items||[]).length;
     const esc=String(o.id).replace(/'/g,"\\'");
     return `<tr>
