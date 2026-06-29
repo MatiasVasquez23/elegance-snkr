@@ -955,6 +955,29 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:60px 24p
   </div>
 </div>
 
+<!-- ADMIN LOGIN MODAL -->
+<div id="admin-login-overlay" style="display:none;position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:40px;width:100%;max-width:400px;margin:16px;box-shadow:0 24px 60px rgba(0,0,0,0.4)">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:52px;height:52px;background:#1a1f2e;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#b8963e;margin:0 auto 14px">E</div>
+      <h2 style="font-size:20px;font-weight:700;color:#1a1f2e;margin-bottom:4px">Panel de Administración</h2>
+      <p style="font-size:13px;color:#8b90a0">Ingresá tus credenciales para continuar</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label style="display:block;font-size:11px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Email</label>
+        <input id="adm-login-email" type="email" placeholder="admin@elegancesnkr.cl" style="width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;transition:border-color .2s;font-family:inherit" onfocus="this.style.borderColor='#b8963e'" onblur="this.style.borderColor='#e5e7eb'">
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Contraseña</label>
+        <input id="adm-login-pass" type="password" placeholder="••••••••" style="width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;transition:border-color .2s;font-family:inherit" onfocus="this.style.borderColor='#b8963e'" onblur="this.style.borderColor='#e5e7eb'" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      </div>
+      <button onclick="doAdminLogin()" style="width:100%;padding:13px;background:#1a1f2e;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:background .2s" onmouseover="this.style.background='#b8963e'" onmouseout="this.style.background='#1a1f2e'">Ingresar al Panel</button>
+      <button onclick="closeAdminLogin()" style="width:100%;padding:11px;background:none;border:1.5px solid #e5e7eb;color:#6b7280;border-radius:8px;font-size:13px;cursor:pointer">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADMIN PANEL — FULL SCREEN -->
 <div id="admin-overlay">
   <aside class="admin-sidebar">
@@ -1676,7 +1699,6 @@ async function doLogin(){
   }
   closeAuth();
   updateUserUI();
-  if(pendingAdminOpen){pendingAdminOpen=false;openAdmin();}
 }
 
 async function doRegister(){
@@ -1709,6 +1731,8 @@ async function adminLogout(){
   currentUser=null;
   closeAdmin();
   updateUserUI();
+  document.getElementById('adm-login-email').value='';
+  document.getElementById('adm-login-pass').value='';
   showToast('Sesión cerrada','success');
 }
 
@@ -1741,13 +1765,39 @@ function syncImgUrlPreview(url){
   el.innerHTML=url?`<img src="${url}" style="width:100%;height:100%;object-fit:contain;padding:8px">`:'📷 Clic para subir foto';
 }
 
+function closeAdminLogin(){
+  const el=document.getElementById('admin-login-overlay');
+  el.style.display='none';
+  document.body.style.overflow='';
+}
+
+async function doAdminLogin(){
+  const email=document.getElementById('adm-login-email').value.trim();
+  const pass=document.getElementById('adm-login-pass').value;
+  if(!email||!pass){showToast('Completá email y contraseña','error');return;}
+  const btn=document.querySelector('#admin-login-overlay button');
+  if(sb){
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error){showToast('Credenciales incorrectas','error');return;}
+    currentUser=data.user;
+  }
+  closeAdminLogin();
+  updateUserUI();
+  await openAdminPanel();
+}
+
 async function openAdmin(){
   if(!currentUser){
-    pendingAdminOpen=true;
-    showToast('Iniciá sesión para acceder al panel admin','error');
-    openAuth('login');
+    const el=document.getElementById('admin-login-overlay');
+    el.style.display='flex';
+    document.body.style.overflow='hidden';
+    setTimeout(()=>document.getElementById('adm-login-email').focus(),100);
     return;
   }
+  await openAdminPanel();
+}
+
+async function openAdminPanel(){
   document.getElementById('admin-overlay').classList.add('open');
   document.body.style.overflow='hidden';
   products=await dbLoadProducts();
